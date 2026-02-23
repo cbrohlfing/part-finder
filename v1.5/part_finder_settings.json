@@ -1,0 +1,12 @@
+﻿{
+    "folders":  [
+                    "\\\\newstrfp01\\G\\Cross Arm Styles",
+                    "\\\\newstrfp01\\G\\CUSTOMER INFORMATION",
+                    "\\\\newstrfp01\\CadShare\\Cross Arm Styles"
+                ],
+    "searchMode":  "Filename contains",
+    "includeSubfolders":  true,
+    "maxResults":  200,
+    "ignorePatterns":  "*.log;*.bak",
+    "lastQuery":  "HAB*B1230"
+}

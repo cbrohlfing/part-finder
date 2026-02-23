@@ -1,0 +1,11 @@
+﻿{
+    "folders":  [
+                    "\\\\newstrfp01\\G\\Cross Arm Styles",
+                    "\\\\newstrfp01\\G\\CUSTOMER INFORMATION"
+                ],
+    "searchMode":  "Filename contains",
+    "includeSubfolders":  true,
+    "maxResults":  200,
+    "ignorePatterns":  "*.log;*.bak",
+    "lastQuery":  "HTZ144N12402ONC"
+}

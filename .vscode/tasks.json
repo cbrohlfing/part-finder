@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PartFinder: Make Release (auto bump)",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\make-release-partfinder.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "PartFinder: Run latest",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-STA",
+        "-File",
+        "${workspaceFolder}\\run-latest.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "PartFinder: Run working",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-STA",
+        "-File",
+        "${workspaceFolder}\\working\\Part-Finder.ps1"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

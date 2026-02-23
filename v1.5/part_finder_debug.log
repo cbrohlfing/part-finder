@@ -1,0 +1,30 @@
+﻿2026-02-23T10:26:48 SCRIPT START (v1.5)
+2026-02-23T10:26:48 TRAP: SplitterDistance must be between Panel1MinSize and Width - Panel2MinSize.
+at <ScriptBlock>, C:\Scripts\PartFinder\v1.5\Part-Finder.ps1: line 212
+at <ScriptBlock>, C:\Scripts\PartFinder\run-latest.ps1: line 34
+2026-02-23T10:26:49 Showing UI
+2026-02-23T10:27:39 Stop-Search: requested
+2026-02-23T10:27:39 Settings saved. folders=3 mode='Filename contains' sub=True max=200 ignore='*.log;*.bak' lastQuery='HAB*B1230'
+2026-02-23T10:27:39 FORM CLOSING
+2026-02-23T10:27:39 Save window settings error: Exception setting "window": "The property 'window' cannot be found on this object. Verify that the property exists and can be set."
+2026-02-23T10:27:40 SCRIPT END
+2026-02-23T10:27:42 SCRIPT START (v1.5)
+2026-02-23T10:27:42 TRAP: SplitterDistance must be between Panel1MinSize and Width - Panel2MinSize.
+at <ScriptBlock>, C:\Scripts\PartFinder\v1.5\Part-Finder.ps1: line 212
+at <ScriptBlock>, C:\Scripts\PartFinder\run-latest.ps1: line 34
+2026-02-23T10:27:42 Showing UI
+2026-02-23T10:28:23 Stop-Search: requested
+2026-02-23T10:28:23 Settings saved. folders=3 mode='Filename contains' sub=True max=200 ignore='*.log;*.bak' lastQuery='HAB*B1230'
+2026-02-23T10:28:23 FORM CLOSING
+2026-02-23T10:28:23 Save window settings error: Exception setting "window": "The property 'window' cannot be found on this object. Verify that the property exists and can be set."
+2026-02-23T10:28:23 SCRIPT END
+2026-02-23T10:30:52 SCRIPT START (v1.5)
+2026-02-23T10:30:52 TRAP: SplitterDistance must be between Panel1MinSize and Width - Panel2MinSize.
+at <ScriptBlock>, C:\Scripts\PartFinder\v1.5\Part-Finder.ps1: line 212
+at <ScriptBlock>, C:\Scripts\PartFinder\run-latest.ps1: line 34
+2026-02-23T10:30:52 Showing UI
+2026-02-23T10:36:30 Stop-Search: requested
+2026-02-23T10:36:30 Settings saved. folders=3 mode='Filename contains' sub=True max=200 ignore='*.log;*.bak' lastQuery='HAB*B1230'
+2026-02-23T10:36:30 FORM CLOSING
+2026-02-23T10:36:30 Save window settings error: Exception setting "window": "The property 'window' cannot be found on this object. Verify that the property exists and can be set."
+2026-02-23T10:36:30 SCRIPT END
