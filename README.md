@@ -1,6 +1,4 @@
-﻿# part-finder
-
-# Part Finder
+﻿# Part Finder
 
 A fast, lightweight Windows desktop utility for searching engineering part files across multiple network locations.
 
