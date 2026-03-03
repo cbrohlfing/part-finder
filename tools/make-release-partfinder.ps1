@@ -1,180 +1,172 @@
 param(
-    [string]$ToVersion
+  # Release version in vX.Y format (example: v1.6). If omitted, auto-bumps minor from latest release.
+  [string]$ToVersion
 )
 
 # ==========================================================
-# Part Finder - Make Release (Working -> Release)
+# Part Finder - Professional Dev -> Release
 #
-# Source:
-#   C:\Scripts\PartFinder\working\Part-Finder.ps1
-#   C:\Scripts\PartFinder\working\part_finder_settings.json (optional)
+# Repo layout:
+#   <repo>\src\Part-Finder.ps1                 (DEV source of truth)
+#   <repo>\tools\run-latest.ps1               (launcher shipped to users)
+#   <repo>\releases\vX.Y\Part-Finder.ps1      (release snapshots)
+#   <repo>\dist\PartFinder_vX.Y.zip           (zip to send to coworkers)
 #
-# Destination (created):
-#   C:\Scripts\PartFinder\vX.Y\
-#     Part-Finder.ps1
-#     part_finder_settings.json (optional)
-#     Run Part Finder vX.Y.lnk
+# Install layout on coworker machines:
+#   C:\Scripts\PartFinder\run-latest.ps1
+#   C:\Scripts\PartFinder\vX.Y\Part-Finder.ps1
 #
-# Version rule going forward: vX.Y only.
-# Legacy folders vX.Y.Z are still detected as "latest" when
-# auto-bumping, but new releases are always vX.Y.
+# Notes:
+# - run-latest picks the HIGHEST version folder (v1.10 > v1.9, and v1.2.3 supported).
+# - This script updates the release PS1 version header + $script:Version.
+# - After releasing, DEV is bumped to next minor.
 # ==========================================================
 
-$root = "C:\Scripts\PartFinder"
-$workingDir = Join-Path $root "working"
-$workingPs1 = Join-Path $workingDir "Part-Finder.ps1"
-$workingCfg = Join-Path $workingDir "part_finder_settings.json"
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
-function Bump-Minor([string]$vText) {
-    if ($vText -notmatch '^v(\d+)\.(\d+)$') { throw "Expected vX.Y, got $vText" }
-    $maj = [int]$matches[1]
-    $min = [int]$matches[2]
-    return ("v{0}.{1}" -f $maj, ($min + 1))
-}
+# Resolve repo root from this script location: <repo>\tools\make-release-partfinder.ps1
+$repoRoot = Split-Path -Parent $PSScriptRoot
+
+$srcPs1 = Join-Path $repoRoot 'src\Part-Finder.ps1'
+$launcherPs1 = Join-Path $repoRoot 'tools\run-latest.ps1'
+$releasesDir = Join-Path $repoRoot 'releases'
+$distDir = Join-Path $repoRoot 'dist'
 
 function Parse-Version([string]$name) {
-    # Accept v1.2 OR v1.2.3 (legacy)
-    if ($name -match '^v(\d+)\.(\d+)(?:\.(\d+))?$') {
-        return [PSCustomObject]@{
-            Major = [int]$matches[1]
-            Minor = [int]$matches[2]
-            Patch = if ($matches[3]) { [int]$matches[3] } else { 0 }
-            Text  = $name
-        }
+  if ($name -match '^v(\d+)\.(\d+)(?:\.(\d+))?$') {
+    return [PSCustomObject]@{
+      Major = [int]$matches[1]
+      Minor = [int]$matches[2]
+      Patch = if ($matches[3]) { [int]$matches[3] } else { 0 }
+      Text  = $name
     }
-    return $null
+  }
+  return $null
 }
 
-function Get-LatestVersionDir([string]$rootPath) {
-    $vers = Get-ChildItem -LiteralPath $rootPath -Directory -ErrorAction Stop |
-    Where-Object { $_.Name -like "v*" } |
-    ForEach-Object { Parse-Version $_.Name } |
-    Where-Object { $_ -ne $null } |
-    Sort-Object Major, Minor, Patch
+function Get-LatestRelease([string]$root) {
+  if (!(Test-Path -LiteralPath $root)) { return $null }
+  $vers = Get-ChildItem -LiteralPath $root -Directory -ErrorAction Stop |
+  ForEach-Object { Parse-Version $_.Name } |
+  Where-Object { $_ -ne $null } |
+  Sort-Object Major, Minor, Patch
 
-    if (-not $vers -or $vers.Count -eq 0) { return $null }
-    return $vers[-1]
+  if (-not $vers -or $vers.Count -eq 0) { return $null }
+  return $vers[-1]
 }
 
 function Next-VersionText($v) {
-    # bump minor: v1.2(.3) -> v1.3
-    return ("v{0}.{1}" -f $v.Major, ($v.Minor + 1))
+  # bump minor: v1.2(.3) -> v1.3
+  return ("v{0}.{1}" -f $v.Major, ($v.Minor + 1))
 }
 
 function Assert-ToVersion([string]$v) {
-    if ($v -notmatch '^v\d+\.\d+$') {
-        throw "ToVersion must be in vX.Y format going forward (example: v1.3). You provided: $v"
-    }
+  if ($v -notmatch '^v\d+\.\d+$') {
+    throw "ToVersion must be vX.Y (example: v1.6). You provided: $v"
+  }
 }
 
-function New-Shortcut {
-    param(
-        [Parameter(Mandatory = $true)][string]$ShortcutPath,
-        [Parameter(Mandatory = $true)][string]$TargetPath,
-        [Parameter(Mandatory = $true)][string]$Arguments,
-        [string]$WorkingDirectory,
-        [string]$Description
-    )
-
-    $wsh = New-Object -ComObject WScript.Shell
-    $sc = $wsh.CreateShortcut($ShortcutPath)
-    $sc.TargetPath = $TargetPath
-    $sc.Arguments = $Arguments
-    if ($WorkingDirectory) { $sc.WorkingDirectory = $WorkingDirectory }
-    if ($Description) { $sc.Description = $Description }
-    $sc.Save()
+function Bump-Minor([string]$vText) {
+  if ($vText -notmatch '^v(\d+)\.(\d+)$') { throw "Expected vX.Y, got $vText" }
+  $maj = [int]$matches[1]
+  $min = [int]$matches[2]
+  return ("v{0}.{1}" -f $maj, ($min + 1))
 }
 
-if (!(Test-Path -LiteralPath $workingPs1)) {
-    throw "Missing working script: $workingPs1"
-}
+if (!(Test-Path -LiteralPath $srcPs1)) { throw "Missing DEV script: $srcPs1" }
+if (!(Test-Path -LiteralPath $launcherPs1)) { throw "Missing launcher script: $launcherPs1" }
 
-$latest = Get-LatestVersionDir $root
+New-Item -ItemType Directory -Path $releasesDir -Force | Out-Null
+New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+
+$latest = Get-LatestRelease $releasesDir
 if ($null -eq $latest) {
-    # If no versions exist yet, default starting point
-    $latest = [PSCustomObject]@{ Major = 1; Minor = 0; Patch = 0; Text = "v1.0" }
+  $latest = [PSCustomObject]@{ Major = 1; Minor = 0; Patch = 0; Text = 'v1.0' }
 }
 
 if ([string]::IsNullOrWhiteSpace($ToVersion)) {
-    $ToVersion = Next-VersionText $latest
+  $ToVersion = Next-VersionText $latest
 }
 Assert-ToVersion $ToVersion
 
-$toDir = Join-Path $root $ToVersion
-$dstPs1 = Join-Path $toDir "Part-Finder.ps1"
-$dstCfg = Join-Path $toDir "part_finder_settings.json"
+$toReleaseDir = Join-Path $releasesDir $ToVersion
+$releasePs1 = Join-Path $toReleaseDir 'Part-Finder.ps1'
 
-if (Test-Path $toDir) { throw "Target folder already exists: $toDir" }
-
-New-Item -ItemType Directory -Path $toDir -Force | Out-Null
-Copy-Item -LiteralPath $workingPs1 -Destination $dstPs1 -Force
-
-# Copy settings forward if present (optional)
-if (Test-Path -LiteralPath $workingCfg) {
-    Copy-Item -LiteralPath $workingCfg -Destination $dstCfg -Force
+if (Test-Path -LiteralPath $toReleaseDir) {
+  throw "Release already exists: $toReleaseDir"
 }
+
+New-Item -ItemType Directory -Path $toReleaseDir -Force | Out-Null
+Copy-Item -LiteralPath $srcPs1 -Destination $releasePs1 -Force
 
 # Update version strings inside the RELEASE PS1 (targeted):
 # 1) $script:Version = "vX.Y"
 # 2) Header comment line: "# Version: vX.Y ..."
-$raw = Get-Content -LiteralPath $dstPs1 -Raw
+$raw = Get-Content -LiteralPath $releasePs1 -Raw
 
 if ($raw -notmatch '(?m)^#\s*Version:\s*v\d+\.\d+(?:\.\d+)?') {
-    throw "Release file missing '# Version:' header line: $dstPs1"
+  throw "Release file missing '# Version:' header line: $releasePs1"
 }
-
 if ($raw -notmatch '\$script:Version\s*=') {
-    throw "Release file missing `$script:Version assignment: $dstPs1"
+  throw "Release file missing `$script:Version assignment: $releasePs1"
 }
 
-# 1) Update $script:Version = "..."
-$raw = $raw -replace '(\$script:Version\s*=\s*")[^"]+(")', "`$1$ToVersion`$2"
-
-# 2) Update header comment "# Version: vX.Y ..." (only that line)
-# Keeps the rest of the comment (like "(Layout fix + sortable columns)")
+$raw = $raw -replace '(\$script:Version\s*=\s*")[^"]+(\")', "`$1$ToVersion`$2"
 $raw = $raw -replace '(?m)^(#\s*Version:\s*)v\d+\.\d+(?:\.\d+)?', "`$1$ToVersion"
 
-Set-Content -LiteralPath $dstPs1 -Value $raw -Encoding UTF8
-
+Set-Content -LiteralPath $releasePs1 -Value $raw -Encoding UTF8
 
 # Parse test (hard fail if broken)
-[void][ScriptBlock]::Create((Get-Content -LiteralPath $dstPs1 -Raw))
+[void][ScriptBlock]::Create((Get-Content -LiteralPath $releasePs1 -Raw))
 
-"OK: Released WORKING -> $ToVersion"
-"OK: Parse passed for $dstPs1"
+Write-Host "OK: Release created -> releases\\$ToVersion"
 
-# Create launcher shortcut in new folder
-$psExe = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
-$lnkPath = Join-Path $toDir "Run Part Finder $ToVersion.lnk"
-$args = "-NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Normal -File `"$dstPs1`""
+# Build coworker install package zip
+$tmpPkgRoot = Join-Path $distDir ("PartFinder_{0}" -f $ToVersion)
+if (Test-Path -LiteralPath $tmpPkgRoot) { Remove-Item -LiteralPath $tmpPkgRoot -Recurse -Force }
+New-Item -ItemType Directory -Path $tmpPkgRoot -Force | Out-Null
 
-New-Shortcut -ShortcutPath $lnkPath `
-    -TargetPath $psExe `
-    -Arguments $args `
-    -WorkingDirectory $toDir `
-    -Description "Launch Part Finder ($ToVersion)"
+# Package layout:
+#   <zip>\run-latest.ps1
+#   <zip>\vX.Y\Part-Finder.ps1
+Copy-Item -LiteralPath $launcherPs1 -Destination (Join-Path $tmpPkgRoot 'run-latest.ps1') -Force
+New-Item -ItemType Directory -Path (Join-Path $tmpPkgRoot $ToVersion) -Force | Out-Null
+Copy-Item -LiteralPath $releasePs1 -Destination (Join-Path $tmpPkgRoot $ToVersion 'Part-Finder.ps1') -Force
 
-"OK: Shortcut created: $lnkPath"
-
-# After releasing, bump WORKING to next minor so it shows "in development"
-$nextWorking = Bump-Minor $ToVersion
-
-$wraw = Get-Content -LiteralPath $workingPs1 -Raw
-
-if ($wraw -notmatch '(?m)^#\s*Version:\s*v\d+\.\d+(?:\.\d+)?') {
-    throw "Working file missing '# Version:' header line: $workingPs1"
+# Optional: include a settings TEMPLATE (not user settings). Use .example extension so it can be tracked even if *.json is ignored.
+$settingsExample = Join-Path $repoRoot 'assets\part_finder_settings.json.example'
+if (Test-Path -LiteralPath $settingsExample) {
+  Copy-Item -LiteralPath $settingsExample -Destination (Join-Path $tmpPkgRoot $ToVersion 'part_finder_settings.json') -Force
 }
 
-if ($wraw -notmatch '\$script:Version\s*=') {
-    throw "Working file missing `$script:Version assignment: $workingPs1"
+$zipPath = Join-Path $distDir ("PartFinder_{0}.zip" -f $ToVersion)
+if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory($tmpPkgRoot, $zipPath)
+
+Write-Host "OK: Package created -> $zipPath"
+
+# Bump DEV to next minor so it clearly shows 'in development'
+$nextDev = Bump-Minor $ToVersion
+$devRaw = Get-Content -LiteralPath $srcPs1 -Raw
+
+if ($devRaw -notmatch '(?m)^#\s*Version:\s*v\d+\.\d+(?:\.\d+)?') {
+  throw "DEV file missing '# Version:' header line: $srcPs1"
+}
+if ($devRaw -notmatch '\$script:Version\s*=') {
+  throw "DEV file missing `$script:Version assignment: $srcPs1"
 }
 
-# 1) Update $script:Version = "..."
-$wraw = $wraw -replace '(\$script:Version\s*=\s*")[^"]+(")', "`$1$nextWorking`$2"
+$devRaw = $devRaw -replace '(\$script:Version\s*=\s*")[^"]+(\")', "`$1$nextDev`$2"
+$devRaw = $devRaw -replace '(?m)^(#\s*Version:\s*)v\d+\.\d+(?:\.\d+)?', "`$1$nextDev"
 
-# 2) Update header comment "# Version: vX.Y ..."
-$wraw = $wraw -replace '(?m)^(#\s*Version:\s*)v\d+\.\d+(?:\.\d+)?', "`$1$nextWorking"
+Set-Content -LiteralPath $srcPs1 -Value $devRaw -Encoding UTF8
+Write-Host "OK: DEV bumped to $nextDev"
 
-Set-Content -LiteralPath $workingPs1 -Value $wraw -Encoding UTF8
-
-"OK: Working bumped to $nextWorking"
+Write-Host "\nNext steps:"
+Write-Host "  git add src/Part-Finder.ps1 releases/$ToVersion dist/PartFinder_$ToVersion.zip"
+Write-Host "  git commit -m \"release: $ToVersion\""
+Write-Host "  git tag $ToVersion"
+Write-Host "  git push && git push origin $ToVersion"

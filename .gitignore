@@ -9,3 +9,11 @@
 
 # VSCode
 .vscode/
+
+# Build / release artifacts
+dist/
+*.zip
+
+# Windows junk
+Thumbs.db
+Desktop.ini
