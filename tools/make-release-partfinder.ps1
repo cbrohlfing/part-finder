@@ -168,8 +168,10 @@ $devRaw = $devRaw -replace '(?m)^(#\s*Version:\s*)v\d+\.\d+(?:\.\d+)?', "`$1$nex
 Set-Content -LiteralPath $srcPs1 -Value $devRaw -Encoding UTF8
 Write-Host "OK: DEV bumped to $nextDev"
 
-Write-Host "\nNext steps:"
-Write-Host "  Write-Host "  git add src/Part-Finder.ps1 releases/$ToVersion""
-Write-Host "  git commit -m \"release: $ToVersion\""
+Write-Host ""
+Write-Host "Next steps:"
+Write-Host "  git add src/Part-Finder.ps1 releases/$ToVersion"
+Write-Host "  git commit -m ""release: $ToVersion"""
 Write-Host "  git tag $ToVersion"
-Write-Host "  git push && git push origin $ToVersion"
+Write-Host "  git push"
+Write-Host "  git push origin $ToVersion"
