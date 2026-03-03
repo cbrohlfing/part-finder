@@ -13,7 +13,6 @@ Always download the newest production version from:
 **GitHub → Releases → Latest**
 
 [![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-brightgreen?style=for-the-badge)](https://github.com/cbrohlfing/part-finder/releases/latest)
-
 [![Latest Version](https://img.shields.io/github/v/release/cbrohlfing/part-finder?display_name=tag&style=for-the-badge)](https://github.com/cbrohlfing/part-finder/releases/latest)
 
 
