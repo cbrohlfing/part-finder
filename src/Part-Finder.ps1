@@ -1,6 +1,6 @@
 ﻿# ==========================================================
 # Part Finder (Multi-folder Search)
-# Version: v1.7 (Per-folder enable/disable via checkboxes)
+# Version: v1.8 (Per-folder enable/disable via checkboxes)
 #
 # Search engine:
 # - Search runs inside Start-Job (separate powershell.exe process) - stable on PS 5.1
@@ -30,7 +30,7 @@ Add-Type -AssemblyName System.Drawing
 # -------------------------
 # Version-local paths
 # -------------------------
-$script:Version = "v1.7"
+$script:Version = "v1.8"
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:SettingsPath = Join-Path $script:ScriptDir "part_finder_settings.json"
 $script:DebugLog = Join-Path $script:ScriptDir "part_finder_debug.log"
@@ -1212,6 +1212,7 @@ $form.Add_FormClosing({
 
 $form.ShowDialog()
 DLog "SCRIPT END"
+
 
 
 

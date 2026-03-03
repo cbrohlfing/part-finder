@@ -140,11 +140,14 @@ if (Test-Path -LiteralPath $settingsExample) {
   Copy-Item -LiteralPath $settingsExample -Destination (Join-Path $tmpPkgRoot $ToVersion 'part_finder_settings.json') -Force
 }
 
+# Create zip (more reliable method)
 $zipPath = Join-Path $distDir ("PartFinder_{0}.zip" -f $ToVersion)
-if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::CreateFromDirectory($tmpPkgRoot, $zipPath)
+if (Test-Path -LiteralPath $zipPath) {
+    Remove-Item -LiteralPath $zipPath -Force
+}
+
+Compress-Archive -Path "$tmpPkgRoot\*" -DestinationPath $zipPath -Force
 
 Write-Host "OK: Package created -> $zipPath"
 
