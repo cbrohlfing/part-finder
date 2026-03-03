@@ -36,7 +36,9 @@ After extraction, your folder structure should look like:
 
 C:\Scripts\PartFinder
 ├── run-latest.ps1
+
 └── vX.Y
+
   └── Part-Finder.ps1
 
 ---
