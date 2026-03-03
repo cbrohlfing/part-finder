@@ -132,7 +132,7 @@ New-Item -ItemType Directory -Path $tmpPkgRoot -Force | Out-Null
 #   <zip>\vX.Y\Part-Finder.ps1
 Copy-Item -LiteralPath $launcherPs1 -Destination (Join-Path $tmpPkgRoot 'run-latest.ps1') -Force
 New-Item -ItemType Directory -Path (Join-Path $tmpPkgRoot $ToVersion) -Force | Out-Null
-Copy-Item -LiteralPath $releasePs1 -Destination (Join-Path $tmpPkgRoot $ToVersion 'Part-Finder.ps1') -Force
+Copy-Item -LiteralPath $releasePs1 -Destination (Join-Path (Join-Path $tmpPkgRoot $ToVersion) 'Part-Finder.ps1') -Force
 
 # Optional: include a settings TEMPLATE (not user settings). Use .example extension so it can be tracked even if *.json is ignored.
 $settingsExample = Join-Path $repoRoot 'assets\part_finder_settings.json.example'
@@ -166,7 +166,7 @@ Set-Content -LiteralPath $srcPs1 -Value $devRaw -Encoding UTF8
 Write-Host "OK: DEV bumped to $nextDev"
 
 Write-Host "\nNext steps:"
-Write-Host "  git add src/Part-Finder.ps1 releases/$ToVersion dist/PartFinder_$ToVersion.zip"
+Write-Host "  Write-Host "  git add src/Part-Finder.ps1 releases/$ToVersion""
 Write-Host "  git commit -m \"release: $ToVersion\""
 Write-Host "  git tag $ToVersion"
 Write-Host "  git push && git push origin $ToVersion"
