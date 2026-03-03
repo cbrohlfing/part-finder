@@ -72,14 +72,15 @@ trap {
 # -------------------------
 $script:DefaultIgnore = "*.log;*.bak"
 $script:DefaultSettings = [PSCustomObject]@{
-    folders           = @()                    # intentionally empty
+    folders           = @()
     searchMode        = "Filename contains"
     includeSubfolders = $true
     maxResults        = 200
     ignorePatterns    = $script:DefaultIgnore
     lastQuery         = ""
-    window            = $null                 # {x,y,width,height,state}
-    mainSplitter      = $null                 # splitter distance (int)
+    window            = $null                 # Stores {x, y, width, height, state}
+    mainSplitter      = 420                   # Default splitter distance
+    columnWidths      = @(220, 300, 120)      # Default column widths
 }
 
 function Load-Settings([string]$path, $fallback) {
@@ -338,7 +339,16 @@ function Update-FolderBottomWrap {
 
 $grpFolders.Add_Resize({ Update-FolderBottomWrap })
 $mainSplit.Panel1.Add_Resize({ Update-FolderBottomWrap })
-$form.Add_Shown({ Update-FolderBottomWrap })
+$form.Add_Shown({
+        Update-FolderBottomWrap
+        # Apply saved column widths if they exist
+        if ($script:cfg.columnWidths -and $script:cfg.columnWidths.Count -eq $listResults.Columns.Count) {
+            for ($i = 0; $i -lt $script:cfg.columnWidths.Count; $i++) {
+                $listResults.Columns[$i].Width = [int]$script:cfg.columnWidths[$i]
+            }
+            DLog "Applied saved column widths."
+        }
+    })
 
 # -------------------------
 # Left - Metadata group
@@ -662,6 +672,13 @@ foreach ($f in @($script:cfg.folders)) {
 # Persist settings
 # -------------------------
 function Persist-UiSettings {
+    # Capture window bounds (handling maximized state correctly)
+    $rb = if ($form.WindowState -ne [System.Windows.Forms.FormWindowState]::Normal) { $form.RestoreBounds } else { $form.Bounds }
+
+    # Capture current column widths from the ListView
+    $widths = @()
+    foreach ($col in $listResults.Columns) { $widths += $col.Width }
+
     $script:cfg = [PSCustomObject]@{
         folders           = @(Get-FoldersFromList $listFolders)
         searchMode        = [string]$cmbMode.SelectedItem
@@ -669,10 +686,18 @@ function Persist-UiSettings {
         maxResults        = [int]$numMax.Value
         ignorePatterns    = [string]$txtIgnore.Text
         lastQuery         = [string]$txtQuery.Text
+        mainSplitter      = [int]$mainSplit.SplitterDistance
+        columnWidths      = $widths #
+        window            = [PSCustomObject]@{
+            x      = [int]$rb.X
+            y      = [int]$rb.Y
+            width  = [int]$rb.Width
+            height = [int]$rb.Height
+            state  = [string]$form.WindowState
+        }
     }
     Save-Settings -path $script:SettingsPath -settingsObject $script:cfg
-    DLog ("Settings saved. folders={0} mode='{1}' sub={2} max={3} ignore='{4}' lastQuery='{5}'" -f `
-            $script:cfg.folders.Count, $script:cfg.searchMode, $script:cfg.includeSubfolders, $script:cfg.maxResults, $script:cfg.ignorePatterns, $script:cfg.lastQuery)
+    DLog "Settings and UI Geometry saved."
 }
 
 function Set-UiSearching([bool]$isSearching) {

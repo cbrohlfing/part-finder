@@ -1,0 +1,11 @@
+# Logs
+*.log*
+
+# All JSON files
+*.json
+
+# Windows shortcuts
+*.lnk
+
+# VSCode
+.vscode/
