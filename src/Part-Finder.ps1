@@ -43,75 +43,80 @@ $script:DebugLog = Join-Path $script:ScriptDir "part_finder_debug.log"
 $script:EnableDebugLog = $true
 
 function DLog([string]$msg) {
-    if (-not $script:EnableDebugLog) { return }
-    try {
-        Add-Content -LiteralPath $script:DebugLog -Value ("{0} {1}" -f (Get-Date -Format s), $msg) -Encoding UTF8
-    } catch { }
+  if (-not $script:EnableDebugLog) { return }
+  try {
+    Add-Content -LiteralPath $script:DebugLog -Value ("{0} {1}" -f (Get-Date -Format s), $msg) -Encoding UTF8
+  }
+  catch { }
 }
 
 DLog ("SCRIPT START ({0})" -f $script:Version)
 
 trap {
-    try { DLog ("TRAP: {0}`r`n{1}" -f $_.Exception.Message, $_.ScriptStackTrace) } catch {}
-    continue
+  try { DLog ("TRAP: {0}`r`n{1}" -f $_.Exception.Message, $_.ScriptStackTrace) } catch {}
+  continue
 }
 
 [System.Windows.Forms.Application]::add_ThreadException({
-        try { DLog ("UI THREAD EXCEPTION: {0}`r`n{1}" -f $_.Exception.Message, $_.Exception.StackTrace) } catch {}
-    })
+    try { DLog ("UI THREAD EXCEPTION: {0}`r`n{1}" -f $_.Exception.Message, $_.Exception.StackTrace) } catch {}
+  })
 
 [System.AppDomain]::CurrentDomain.add_UnhandledException({
-        try {
-            $ex = $_.ExceptionObject
-            DLog ("UNHANDLED EXCEPTION: {0}" -f $ex.ToString())
-        } catch {}
-    })
+    try {
+      $ex = $_.ExceptionObject
+      DLog ("UNHANDLED EXCEPTION: {0}" -f $ex.ToString())
+    }
+    catch {}
+  })
 
 # -------------------------
 # Settings load/save
 # -------------------------
 $script:DefaultIgnore = "*.log;*.bak"
 $script:DefaultSettings = [PSCustomObject]@{
-    folders           = @()
-    searchMode        = "Filename contains"
-    includeSubfolders = $true
-    maxResults        = 200
-    ignorePatterns    = $script:DefaultIgnore
-    lastQuery         = ""
-    window            = $null                 # Stores {x, y, width, height, state}
-    mainSplitter      = 420                   # Default splitter distance
-    columnWidths      = @(220, 300, 120)      # Default column widths
+  folders           = @()
+  searchMode        = "Filename contains"
+  includeSubfolders = $true
+  maxResults        = 200
+  ignorePatterns    = $script:DefaultIgnore
+  lastQuery         = ""
+  window            = $null                 # Stores {x, y, width, height, state}
+  mainSplitter      = 420                   # Default splitter distance
+  columnWidths      = @(220, 300, 120)      # Default column widths
 }
 
 function Load-Settings([string]$path, $fallback) {
-    try {
-        if (Test-Path -LiteralPath $path) {
-            $raw = Get-Content -LiteralPath $path -Raw -ErrorAction Stop
-            $cfg = $raw | ConvertFrom-Json -ErrorAction Stop
-            return [PSCustomObject]@{
-                folders           = if ($cfg.folders) { @($cfg.folders | ForEach-Object { [string]$_ }) } else { @($fallback.folders) }
-                searchMode        = if ($cfg.searchMode) { [string]$cfg.searchMode } else { [string]$fallback.searchMode }
-                includeSubfolders = if ($null -ne $cfg.includeSubfolders) { [bool]$cfg.includeSubfolders } else { [bool]$fallback.includeSubfolders }
-                maxResults        = if ($null -ne $cfg.maxResults) { [int]$cfg.maxResults } else { [int]$fallback.maxResults }
-                ignorePatterns    = if ($cfg.ignorePatterns) { [string]$cfg.ignorePatterns } else { [string]$fallback.ignorePatterns }
-                lastQuery         = if ($cfg.lastQuery) { [string]$cfg.lastQuery } else { [string]$fallback.lastQuery }
-                window            = if ($cfg.window) { $cfg.window } else { $fallback.window }
-                mainSplitter      = if ($null -ne $cfg.mainSplitter) { [int]$cfg.mainSplitter } else { $fallback.mainSplitter }
-            }
-        }
-    } catch {
-        DLog ("Load-Settings error: {0}" -f $_.Exception.Message)
+  try {
+    if (Test-Path -LiteralPath $path) {
+      $raw = Get-Content -LiteralPath $path -Raw -ErrorAction Stop
+      $cfg = $raw | ConvertFrom-Json -ErrorAction Stop
+      return [PSCustomObject]@{
+        folders           = if ($cfg.folders) { @($cfg.folders) } else { @($fallback.folders) }
+        searchMode        = if ($cfg.searchMode) { [string]$cfg.searchMode } else { [string]$fallback.searchMode }
+        includeSubfolders = if ($null -ne $cfg.includeSubfolders) { [bool]$cfg.includeSubfolders } else { [bool]$fallback.includeSubfolders }
+        maxResults        = if ($null -ne $cfg.maxResults) { [int]$cfg.maxResults } else { [int]$fallback.maxResults }
+        ignorePatterns    = if ($cfg.ignorePatterns) { [string]$cfg.ignorePatterns } else { [string]$fallback.ignorePatterns }
+        lastQuery         = if ($cfg.lastQuery) { [string]$cfg.lastQuery } else { [string]$fallback.lastQuery }
+        window            = if ($cfg.window) { $cfg.window } else { $fallback.window }
+        mainSplitter      = if ($null -ne $cfg.mainSplitter) { [int]$cfg.mainSplitter } else { $fallback.mainSplitter }
+        columnWidths      = if ($cfg.columnWidths) { @($cfg.columnWidths) } else { @($fallback.columnWidths) }
+      }
     }
-    return $fallback
+  }
+  catch {
+    DLog ("Load-Settings error: {0}" -f $_.Exception.Message)
+  }
+  return $fallback
 }
 
 function Save-Settings([string]$path, $settingsObject) {
-    try {
-        $json = $settingsObject | ConvertTo-Json -Depth 6
-        Set-Content -LiteralPath $path -Value $json -Encoding UTF8
-    } catch {
-        DLog ("Save-Settings error: {0}" -f $_.Exception.Message)
-    }
+  try {
+    $json = $settingsObject | ConvertTo-Json -Depth 6
+    Set-Content -LiteralPath $path -Value $json -Encoding UTF8
+  }
+  catch {
+    DLog ("Save-Settings error: {0}" -f $_.Exception.Message)
+  }
 }
 
 $script:cfg = Load-Settings -path $script:SettingsPath -fallback $script:DefaultSettings
@@ -120,63 +125,66 @@ $script:cfg = Load-Settings -path $script:SettingsPath -fallback $script:Default
 # UI helpers
 # -------------------------
 function Ui([System.Windows.Forms.Control]$ctl, [scriptblock]$sb) {
-    try {
-        if ($null -eq $ctl -or $ctl.IsDisposed) { return }
-        if (-not $ctl.IsHandleCreated) { $null = $ctl.Handle }
-        if ($ctl.InvokeRequired) {
-            $null = $ctl.BeginInvoke([Action] { try { & $sb } catch {} })
-        } else {
-            & $sb
-        }
-    } catch {
-        DLog ("UI invoke error: {0}" -f $_.Exception.Message)
+  try {
+    if ($null -eq $ctl -or $ctl.IsDisposed) { return }
+    if (-not $ctl.IsHandleCreated) { $null = $ctl.Handle }
+    if ($ctl.InvokeRequired) {
+      $null = $ctl.BeginInvoke([Action] { try { & $sb } catch {} })
     }
+    else {
+      & $sb
+    }
+  }
+  catch {
+    DLog ("UI invoke error: {0}" -f $_.Exception.Message)
+  }
 }
 
 function Add-FolderToList([System.Windows.Forms.CheckedListBox]$list, [string]$folder, [bool]$enabled = $true) {
-    if ([string]::IsNullOrWhiteSpace($folder)) { return }
-    $folder = $folder.Trim().Trim('"').TrimEnd('\')
+  if ([string]::IsNullOrWhiteSpace($folder)) { return }
+  $folder = $folder.Trim().Trim('"').TrimEnd('\')
 
-    foreach ($item in $list.Items) {
-        if ([string]::Equals([string]$item, $folder, [System.StringComparison]::OrdinalIgnoreCase)) {
-            # If it's already in the list, optionally update the enabled state
-            try { $list.SetItemChecked($list.Items.IndexOf($item), [bool]$enabled) } catch {}
-            return
-        }
+  foreach ($item in $list.Items) {
+    if ([string]::Equals([string]$item, $folder, [System.StringComparison]::OrdinalIgnoreCase)) {
+      # If it's already in the list, optionally update the enabled state
+      try { $list.SetItemChecked($list.Items.IndexOf($item), [bool]$enabled) } catch {}
+      return
     }
-    try {
-        # CheckedListBox supports adding with initial checked state
-        [void]$list.Items.Add($folder, [bool]$enabled)
-    } catch {
-        [void]$list.Items.Add($folder)
-        try { $list.SetItemChecked($list.Items.Count - 1, [bool]$enabled) } catch {}
-    }
+  }
+  try {
+    # CheckedListBox supports adding with initial checked state
+    [void]$list.Items.Add($folder, [bool]$enabled)
+  }
+  catch {
+    [void]$list.Items.Add($folder)
+    try { $list.SetItemChecked($list.Items.Count - 1, [bool]$enabled) } catch {}
+  }
 }
 
 function Get-FoldersFromList([System.Windows.Forms.CheckedListBox]$list) {
-    # Returns array of objects: @{ path = "..."; enabled = $true/$false }
-    $out = @()
-    for ($i = 0; $i -lt $list.Items.Count; $i++) {
-        $p = [string]$list.Items[$i]
-        $out += [PSCustomObject]@{ path = $p; enabled = [bool]$list.GetItemChecked($i) }
-    }
-    return $out
+  # Returns array of objects: @{ path = "..."; enabled = $true/$false }
+  $out = @()
+  for ($i = 0; $i -lt $list.Items.Count; $i++) {
+    $p = [string]$list.Items[$i]
+    $out += [PSCustomObject]@{ path = $p; enabled = [bool]$list.GetItemChecked($i) }
+  }
+  return $out
 }
 
 function Get-EnabledFoldersFromList([System.Windows.Forms.CheckedListBox]$list) {
-    $out = @()
-    for ($i = 0; $i -lt $list.Items.Count; $i++) {
-        if ($list.GetItemChecked($i)) { $out += [string]$list.Items[$i] }
-    }
-    return $out
+  $out = @()
+  for ($i = 0; $i -lt $list.Items.Count; $i++) {
+    if ($list.GetItemChecked($i)) { $out += [string]$list.Items[$i] }
+  }
+  return $out
 }
 function Safe-OpenFile([string]$path) { try { Start-Process -FilePath $path | Out-Null } catch {} }
 function Safe-OpenFolderAndSelect([string]$filePath) { try { Start-Process explorer.exe ("/select,`"$filePath`"") | Out-Null } catch {} }
 function Copy-ToClipboard([string]$text) { try { [System.Windows.Forms.Clipboard]::SetText($text) } catch {} }
 
 function Parse-IgnorePatterns([string]$raw) {
-    if ([string]::IsNullOrWhiteSpace($raw)) { return @() }
-    $raw.Split(';') | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne "" }
+  if ([string]::IsNullOrWhiteSpace($raw)) { return @() }
+  $raw.Split(';') | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne "" }
 }
 
 
@@ -193,22 +201,23 @@ $form.MinimumSize = New-Object System.Drawing.Size(900, 600)
 $form.Padding = New-Object System.Windows.Forms.Padding(8)
 # Apply saved window geometry (size/position/state)
 if ($script:cfg.window) {
-    try {
-        $wcfg = $script:cfg.window
-        if ($wcfg.width -and $wcfg.height) {
-            $form.StartPosition = 'Manual'
-            $form.Location = New-Object System.Drawing.Point([int]$wcfg.x, [int]$wcfg.y)
-            $form.Size = New-Object System.Drawing.Size([int]$wcfg.width, [int]$wcfg.height)
-        }
-        if ($wcfg.state) {
-            switch ([string]$wcfg.state) {
-                'Maximized' { $form.WindowState = [System.Windows.Forms.FormWindowState]::Maximized }
-                default { $form.WindowState = [System.Windows.Forms.FormWindowState]::Normal }
-            }
-        }
-    } catch {
-        DLog ("Apply window settings error: {0}" -f $_.Exception.Message)
+  try {
+    $wcfg = $script:cfg.window
+    if ($wcfg.width -and $wcfg.height) {
+      $form.StartPosition = 'Manual'
+      $form.Location = New-Object System.Drawing.Point([int]$wcfg.x, [int]$wcfg.y)
+      $form.Size = New-Object System.Drawing.Size([int]$wcfg.width, [int]$wcfg.height)
     }
+    if ($wcfg.state) {
+      switch ([string]$wcfg.state) {
+        'Maximized' { $form.WindowState = [System.Windows.Forms.FormWindowState]::Maximized }
+        default { $form.WindowState = [System.Windows.Forms.FormWindowState]::Normal }
+      }
+    }
+  }
+  catch {
+    DLog ("Apply window settings error: {0}" -f $_.Exception.Message)
+  }
 }
 
 
@@ -218,18 +227,6 @@ $mainSplit.Dock = 'Fill'
 $mainSplit.Orientation = 'Vertical'
 $mainSplit.SplitterWidth = 6
 $mainSplit.SplitterDistance = 420
-# Apply saved splitter distance
-if ($null -ne $script:cfg.mainSplitter) {
-    try {
-        $d = [int]$script:cfg.mainSplitter
-        $min = $mainSplit.Panel1MinSize
-        $max = [Math]::Max($min, $form.ClientSize.Width - $mainSplit.Panel2MinSize - $mainSplit.SplitterWidth - 20)
-        $mainSplit.SplitterDistance = [Math]::Max($min, [Math]::Min($max, $d))
-    } catch {
-        DLog ("Apply splitter settings error: {0}" -f $_.Exception.Message)
-    }
-}
-
 $mainSplit.Panel1MinSize = 300
 $mainSplit.Panel2MinSize = 450
 
@@ -330,25 +327,44 @@ $grpFolders.Controls.Add($tblFolders)
 
 # Keep wrapping labels readable when the left pane is resized
 function Update-FolderBottomWrap {
-    try {
-        $w = [Math]::Max(120, $grpFolders.ClientSize.Width - 30)
-        $lblAdd.MaximumSize = New-Object System.Drawing.Size($w, 0)
-        $lblFolderHint.MaximumSize = New-Object System.Drawing.Size($w, 0)
-    } catch { }
+  try {
+    $w = [Math]::Max(120, $grpFolders.ClientSize.Width - 30)
+    $lblAdd.MaximumSize = New-Object System.Drawing.Size($w, 0)
+    $lblFolderHint.MaximumSize = New-Object System.Drawing.Size($w, 0)
+  }
+  catch { }
 }
 
 $grpFolders.Add_Resize({ Update-FolderBottomWrap })
 $mainSplit.Panel1.Add_Resize({ Update-FolderBottomWrap })
 $form.Add_Shown({
-        Update-FolderBottomWrap
-        # Apply saved column widths if they exist
-        if ($script:cfg.columnWidths -and $script:cfg.columnWidths.Count -eq $listResults.Columns.Count) {
-            for ($i = 0; $i -lt $script:cfg.columnWidths.Count; $i++) {
-                $listResults.Columns[$i].Width = [int]$script:cfg.columnWidths[$i]
-            }
-            DLog "Applied saved column widths."
-        }
-    })
+    Update-FolderBottomWrap
+
+    # Apply saved column widths if they exist
+    if ($script:cfg.columnWidths -and $script:cfg.columnWidths.Count -eq $listResults.Columns.Count) {
+      for ($i = 0; $i -lt $script:cfg.columnWidths.Count; $i++) {
+        $listResults.Columns[$i].Width = [int]$script:cfg.columnWidths[$i]
+      }
+      DLog "Applied saved column widths."
+    }
+
+    # Apply saved splitter distance after layout is complete
+    if ($null -ne $script:cfg.mainSplitter) {
+      try {
+        $d = [int]$script:cfg.mainSplitter
+        $min = [int]$mainSplit.Panel1MinSize
+        $max = [int]($mainSplit.ClientSize.Width - $mainSplit.Panel2MinSize - $mainSplit.SplitterWidth)
+
+        if ($max -lt $min) { $max = $min }
+
+        $mainSplit.SplitterDistance = [Math]::Max($min, [Math]::Min($max, $d))
+        DLog ("Applied saved splitter distance: {0}" -f $mainSplit.SplitterDistance)
+      }
+      catch {
+        DLog ("Apply splitter settings error: {0}" -f $_.Exception.Message)
+      }
+    }
+  })
 
 # -------------------------
 # Left - Metadata group
@@ -371,17 +387,17 @@ $tblMeta.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.W
 $tblMeta.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100))) | Out-Null
 
 function New-MetaRow([string]$labelText) {
-    $l = New-Object System.Windows.Forms.Label
-    $l.Text = $labelText
-    $l.AutoSize = $true
-    $l.Anchor = 'Left'
-    $v = New-Object System.Windows.Forms.Label
-    $v.Text = ""
-    $v.AutoEllipsis = $true
-    $v.Dock = 'Fill'
-    $v.Padding = New-Object System.Windows.Forms.Padding(2)
-    $v.BorderStyle = 'Fixed3D'
-    return @($l, $v)
+  $l = New-Object System.Windows.Forms.Label
+  $l.Text = $labelText
+  $l.AutoSize = $true
+  $l.Anchor = 'Left'
+  $v = New-Object System.Windows.Forms.Label
+  $v.Text = ""
+  $v.AutoEllipsis = $true
+  $v.Dock = 'Fill'
+  $v.Padding = New-Object System.Windows.Forms.Padding(2)
+  $v.BorderStyle = 'Fixed3D'
+  return @($l, $v)
 }
 
 $metaNameRow = New-MetaRow "Name"
@@ -410,7 +426,7 @@ $tblMeta.Controls.Add($lblMetaOwn, 0, 6); $tblMeta.Controls.Add($valMetaOwn, 1, 
 
 $tblMeta.RowStyles.Clear()
 for ($i = 0; $i -lt 7; $i++) {
-    $tblMeta.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 26))) | Out-Null
+  $tblMeta.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 26))) | Out-Null
 }
 
 $grpMeta.Controls.Add($tblMeta)
@@ -468,13 +484,13 @@ $cmbMode.Width = 160
 $cmbMode.DropDownStyle = "DropDownList"
 $cmbMode.Anchor = 'Left'
 $cmbMode.Items.AddRange(@(
-        "Filename contains",
-        "Filename starts with",
-        "Filename ends with",
-        "Exact filename",
-        "Wildcard (* and ?)",
-        "Regex"
-    ))
+    "Filename contains",
+    "Filename starts with",
+    "Filename ends with",
+    "Exact filename",
+    "Wildcard (* and ?)",
+    "Regex"
+  ))
 $cmbMode.SelectedItem = $script:cfg.searchMode
 if (-not $cmbMode.SelectedItem) { $cmbMode.SelectedItem = "Filename contains" }
 
@@ -617,116 +633,121 @@ $form.Controls.Add($mainSplit)
 
 # Metadata updater (called when selection changes)
 function Set-Metadata([string]$fullPath) {
-    Ui $form {
-        if ([string]::IsNullOrWhiteSpace($fullPath) -or -not (Test-Path -LiteralPath $fullPath)) {
-            $valMetaName.Text = ""
-            $valMetaPath.Text = ""
-            $valMetaType.Text = ""
-            $valMetaSize.Text = ""
-            $valMetaMod.Text = ""
-            $valMetaCre.Text = ""
-            $valMetaOwn.Text = ""
-            return
-        }
-
-        try {
-            $fi = New-Object System.IO.FileInfo($fullPath)
-            $valMetaName.Text = $fi.Name
-            $valMetaPath.Text = $fi.FullName
-            $valMetaType.Text = $fi.Extension
-            $valMetaSize.Text = ("{0:n0} KB" -f [math]::Ceiling($fi.Length / 1KB))
-            $valMetaMod.Text = $fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
-            $valMetaCre.Text = $fi.CreationTime.ToString("yyyy-MM-dd HH:mm")
-            try {
-                $acl = Get-Acl -LiteralPath $fullPath
-                $valMetaOwn.Text = [string]$acl.Owner
-            } catch { $valMetaOwn.Text = "" }
-        } catch {
-            $valMetaName.Text = ""
-            $valMetaPath.Text = $fullPath
-            $valMetaType.Text = ""
-            $valMetaSize.Text = ""
-            $valMetaMod.Text = ""
-            $valMetaCre.Text = ""
-            $valMetaOwn.Text = ""
-        }
+  Ui $form {
+    if ([string]::IsNullOrWhiteSpace($fullPath) -or -not (Test-Path -LiteralPath $fullPath)) {
+      $valMetaName.Text = ""
+      $valMetaPath.Text = ""
+      $valMetaType.Text = ""
+      $valMetaSize.Text = ""
+      $valMetaMod.Text = ""
+      $valMetaCre.Text = ""
+      $valMetaOwn.Text = ""
+      return
     }
+
+    try {
+      $fi = New-Object System.IO.FileInfo($fullPath)
+      $valMetaName.Text = $fi.Name
+      $valMetaPath.Text = $fi.FullName
+      $valMetaType.Text = $fi.Extension
+      $valMetaSize.Text = ("{0:n0} KB" -f [math]::Ceiling($fi.Length / 1KB))
+      $valMetaMod.Text = $fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
+      $valMetaCre.Text = $fi.CreationTime.ToString("yyyy-MM-dd HH:mm")
+      try {
+        $acl = Get-Acl -LiteralPath $fullPath
+        $valMetaOwn.Text = [string]$acl.Owner
+      }
+      catch { $valMetaOwn.Text = "" }
+    }
+    catch {
+      $valMetaName.Text = ""
+      $valMetaPath.Text = $fullPath
+      $valMetaType.Text = ""
+      $valMetaSize.Text = ""
+      $valMetaMod.Text = ""
+      $valMetaCre.Text = ""
+      $valMetaOwn.Text = ""
+    }
+  }
 }
 
 # Load folders from settings
 foreach ($f in @($script:cfg.folders)) {
-    if ($null -eq $f) { continue }
-    # Backward compatible: folders can be an array of strings, or objects { path, enabled }
-    if ($f -is [string]) {
-        Add-FolderToList $listFolders $f $true
-    } else {
-        $p = $f.path
-        if (-not $p) { $p = [string]$f }
-        $en = $true
-        try { if ($null -ne $f.enabled) { $en = [bool]$f.enabled } } catch {}
-        Add-FolderToList $listFolders $p $en
-    }
+  if ($null -eq $f) { continue }
+  # Backward compatible: folders can be an array of strings, or objects { path, enabled }
+  if ($f -is [string]) {
+    Add-FolderToList $listFolders $f $true
+  }
+  else {
+    $p = $f.path
+    if (-not $p) { $p = [string]$f }
+    $en = $true
+    try { if ($null -ne $f.enabled) { $en = [bool]$f.enabled } } catch {}
+    Add-FolderToList $listFolders $p $en
+  }
 }
 
 # -------------------------
 # Persist settings
 # -------------------------
 function Persist-UiSettings {
-    # Capture window bounds (handling maximized state correctly)
-    $rb = if ($form.WindowState -ne [System.Windows.Forms.FormWindowState]::Normal) { $form.RestoreBounds } else { $form.Bounds }
+  # Capture window bounds (handling maximized state correctly)
+  $rb = if ($form.WindowState -ne [System.Windows.Forms.FormWindowState]::Normal) { $form.RestoreBounds } else { $form.Bounds }
 
-    # Capture current column widths from the ListView
-    $widths = @()
-    foreach ($col in $listResults.Columns) { $widths += $col.Width }
+  # Capture current column widths from the ListView
+  $widths = @()
+  foreach ($col in $listResults.Columns) { $widths += $col.Width }
 
-    $script:cfg = [PSCustomObject]@{
-        folders           = @(Get-FoldersFromList $listFolders)
-        searchMode        = [string]$cmbMode.SelectedItem
-        includeSubfolders = [bool]$chkSub.Checked
-        maxResults        = [int]$numMax.Value
-        ignorePatterns    = [string]$txtIgnore.Text
-        lastQuery         = [string]$txtQuery.Text
-        mainSplitter      = [int]$mainSplit.SplitterDistance
-        columnWidths      = $widths #
-        window            = [PSCustomObject]@{
-            x      = [int]$rb.X
-            y      = [int]$rb.Y
-            width  = [int]$rb.Width
-            height = [int]$rb.Height
-            state  = [string]$form.WindowState
-        }
+  $script:cfg = [PSCustomObject]@{
+    folders           = @(Get-FoldersFromList $listFolders)
+    searchMode        = [string]$cmbMode.SelectedItem
+    includeSubfolders = [bool]$chkSub.Checked
+    maxResults        = [int]$numMax.Value
+    ignorePatterns    = [string]$txtIgnore.Text
+    lastQuery         = [string]$txtQuery.Text
+    mainSplitter      = [int]$mainSplit.SplitterDistance
+    columnWidths      = $widths #
+    window            = [PSCustomObject]@{
+      x      = [int]$rb.X
+      y      = [int]$rb.Y
+      width  = [int]$rb.Width
+      height = [int]$rb.Height
+      state  = [string]$form.WindowState
     }
-    Save-Settings -path $script:SettingsPath -settingsObject $script:cfg
-    DLog "Settings and UI Geometry saved."
+  }
+  Save-Settings -path $script:SettingsPath -settingsObject $script:cfg
+  DLog ("Settings saved: window={0}x{1} @ {2},{3} state={4} split={5}" -f `
+      $rb.Width, $rb.Height, $rb.X, $rb.Y, $form.WindowState, $mainSplit.SplitterDistance)
 }
 
 function Set-UiSearching([bool]$isSearching) {
-    Ui $form {
-        $btnSearch.Enabled = -not $isSearching
-        $btnStop.Enabled = $isSearching
-        $prg.Visible = $isSearching
-        if ($isSearching) {
-            $prg.Style = 'Marquee'
-            $prg.MarqueeAnimationSpeed = 30
-        } else {
-            $prg.Style = 'Blocks'
-            $prg.MarqueeAnimationSpeed = 0
-        }
+  Ui $form {
+    $btnSearch.Enabled = -not $isSearching
+    $btnStop.Enabled = $isSearching
+    $prg.Visible = $isSearching
+    if ($isSearching) {
+      $prg.Style = 'Marquee'
+      $prg.MarqueeAnimationSpeed = 30
     }
+    else {
+      $prg.Style = 'Blocks'
+      $prg.MarqueeAnimationSpeed = 0
+    }
+  }
 }
 
 function Set-Status([string]$text) { Ui $form { $lblStatus.Text = $text } }
 function Set-Current([string]$text) { Ui $form { $lblCurrent.Text = $text } }
 
 function Add-ResultRow([string]$name, [string]$folder, [datetime]$modified, [string]$full) {
-    Ui $form {
-        $item = New-Object System.Windows.Forms.ListViewItem($name)
-        [void]$item.SubItems.Add($folder)
-        [void]$item.SubItems.Add(($modified.ToString("yyyy-MM-dd")))
-        # Tag holds richer info for sorting + actions
-        $item.Tag = [pscustomobject]@{ FullPath = $full; Modified = $modified; Name = $name; Folder = $folder }
-        [void]$listResults.Items.Add($item)
-    }
+  Ui $form {
+    $item = New-Object System.Windows.Forms.ListViewItem($name)
+    [void]$item.SubItems.Add($folder)
+    [void]$item.SubItems.Add(($modified.ToString("yyyy-MM-dd")))
+    # Tag holds richer info for sorting + actions
+    $item.Tag = [pscustomobject]@{ FullPath = $full; Modified = $modified; Name = $name; Folder = $folder }
+    [void]$listResults.Items.Add($item)
+  }
 }
 
 # -------------------------
@@ -736,51 +757,54 @@ $script:SortColumn = -1
 $script:SortAsc = $true
 
 function Compare-Text([string]$a, [string]$b) {
-    return [string]::Compare($a, $b, $true)  # ignore case
+  return [string]::Compare($a, $b, $true)  # ignore case
 }
 
 $listResults.Add_ColumnClick({
-        param($evtSender, $e)
+    param($evtSender, $e)
 
-        try {
-            $col = [int]$e.Column
-            if ($script:SortColumn -eq $col) {
-                $script:SortAsc = -not $script:SortAsc
-            } else {
-                $script:SortColumn = $col
-                $script:SortAsc = $true
-            }
+    try {
+      $col = [int]$e.Column
+      if ($script:SortColumn -eq $col) {
+        $script:SortAsc = -not $script:SortAsc
+      }
+      else {
+        $script:SortColumn = $col
+        $script:SortAsc = $true
+      }
 
-            # Capture items, sort, re-add
-            $items = @()
-            foreach ($it in $listResults.Items) { $items += $it }
+      # Capture items, sort, re-add
+      $items = @()
+      foreach ($it in $listResults.Items) { $items += $it }
 
-            $sorted = $items | Sort-Object -Stable -Property @{
-                Expression = {
-                    $tag = $_.Tag
-                    switch ($script:SortColumn) {
-                        0 { [string]$tag.Name }
-                        1 { [string]$tag.Folder }
-                        2 { [datetime]$tag.Modified }
-                        default { [string]$tag.Name }
-                    }
-                }
-                Ascending  = $script:SortAsc
-            }
-
-            Ui $form {
-                $listResults.BeginUpdate()
-                try {
-                    $listResults.Items.Clear()
-                    foreach ($it in $sorted) { [void]$listResults.Items.Add($it) }
-                } finally {
-                    $listResults.EndUpdate()
-                }
-            }
-        } catch {
-            DLog ("SORT ERROR: {0}" -f $_.Exception.Message)
+      $sorted = $items | Sort-Object -Stable -Property @{
+        Expression = {
+          $tag = $_.Tag
+          switch ($script:SortColumn) {
+            0 { [string]$tag.Name }
+            1 { [string]$tag.Folder }
+            2 { [datetime]$tag.Modified }
+            default { [string]$tag.Name }
+          }
         }
-    })
+        Ascending  = $script:SortAsc
+      }
+
+      Ui $form {
+        $listResults.BeginUpdate()
+        try {
+          $listResults.Items.Clear()
+          foreach ($it in $sorted) { [void]$listResults.Items.Add($it) }
+        }
+        finally {
+          $listResults.EndUpdate()
+        }
+      }
+    }
+    catch {
+      DLog ("SORT ERROR: {0}" -f $_.Exception.Message)
+    }
+  })
 
 # -------------------------
 # Job-based search engine
@@ -793,334 +817,345 @@ $script:JobStart = $null
 $script:SeenPaths = $null   # UI-side dedup
 
 function Stop-Search {
-    try {
-        DLog "Stop-Search: requested"
-        if ($script:PollTimer) {
-            try { $script:PollTimer.Stop(); $script:PollTimer.Dispose() } catch {}
-            $script:PollTimer = $null
-        }
-        if ($script:SearchJob) {
-            try { Stop-Job -Job $script:SearchJob -Force -ErrorAction SilentlyContinue } catch {}
-            try { Remove-Job -Job $script:SearchJob -Force -ErrorAction SilentlyContinue } catch {}
-            $script:SearchJob = $null
-        }
-    } catch {
-        DLog ("Stop-Search error: {0}" -f $_.Exception.Message)
-    } finally {
-        Set-Current ""
-        Set-UiSearching $false
-        if ($listResults.Items.Count -ge 1 -and $listResults.Items[0].Text -eq "Searching...") {
-            Ui $form { $listResults.Items.RemoveAt(0) }
-        }
-        if ($lblStatus.Text -like "Starting*") { Set-Status "Stopped." }
+  try {
+    DLog "Stop-Search: requested"
+    if ($script:PollTimer) {
+      try { $script:PollTimer.Stop(); $script:PollTimer.Dispose() } catch {}
+      $script:PollTimer = $null
     }
+    if ($script:SearchJob) {
+      try { Stop-Job -Job $script:SearchJob -Force -ErrorAction SilentlyContinue } catch {}
+      try { Remove-Job -Job $script:SearchJob -Force -ErrorAction SilentlyContinue } catch {}
+      $script:SearchJob = $null
+    }
+  }
+  catch {
+    DLog ("Stop-Search error: {0}" -f $_.Exception.Message)
+  }
+  finally {
+    Set-Current ""
+    Set-UiSearching $false
+    if ($listResults.Items.Count -ge 1 -and $listResults.Items[0].Text -eq "Searching...") {
+      Ui $form { $listResults.Items.RemoveAt(0) }
+    }
+    if ($lblStatus.Text -like "Starting*") { Set-Status "Stopped." }
+  }
 }
 
 function Start-Search([string[]]$folders, [string]$query, [string]$mode, [bool]$recurse, [int]$maxResults, [string[]]$ignorePatterns) {
-    DLog ("Start-Search: folders={0} query='{1}' mode='{2}' recurse={3} max={4} ignore='{5}'" -f `
-            $folders.Count, $query, $mode, $recurse, $maxResults, ($ignorePatterns -join ';'))
+  DLog ("Start-Search: folders={0} query='{1}' mode='{2}' recurse={3} max={4} ignore='{5}'" -f `
+      $folders.Count, $query, $mode, $recurse, $maxResults, ($ignorePatterns -join ';'))
 
-    Stop-Search
+  Stop-Search
 
-    # Clear metadata
-    try { Set-Metadata "" } catch {}
+  # Clear metadata
+  try { Set-Metadata "" } catch {}
 
-    # UI pre-state
-    Ui $form {
-        $listResults.Items.Clear()
-        $ph = New-Object System.Windows.Forms.ListViewItem("Searching...")
-        [void]$ph.SubItems.Add("")
-        [void]$ph.SubItems.Add("")
-        $ph.ForeColor = [System.Drawing.Color]::Gray
-        [void]$listResults.Items.Add($ph)
-    }
+  # UI pre-state
+  Ui $form {
+    $listResults.Items.Clear()
+    $ph = New-Object System.Windows.Forms.ListViewItem("Searching...")
+    [void]$ph.SubItems.Add("")
+    [void]$ph.SubItems.Add("")
+    $ph.ForeColor = [System.Drawing.Color]::Gray
+    [void]$listResults.Items.Add($ph)
+  }
 
-    $script:Found = 0
-    $script:Scanned = 0
-    $script:JobStart = Get-Date
-    $script:SeenPaths = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+  $script:Found = 0
+  $script:Scanned = 0
+  $script:JobStart = Get-Date
+  $script:SeenPaths = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
 
-    Set-UiSearching $true
-    Set-Status "Starting..."
-    Set-Current ""
+  Set-UiSearching $true
+  Set-Status "Starting..."
+  Set-Current ""
 
-    $jobScript = {
-        param($folders, $query, $mode, $recurse, $maxResults, $ignorePatterns)
+  $jobScript = {
+    param($folders, $query, $mode, $recurse, $maxResults, $ignorePatterns)
 
-        function IsMatch([string]$name, [string]$q, [string]$mode) {
-            switch ($mode) {
-                "Filename contains" { return ($name.IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) }
-                "Filename starts with" { return $name.StartsWith($q, [System.StringComparison]::OrdinalIgnoreCase) }
-                "Filename ends with" { return $name.EndsWith($q, [System.StringComparison]::OrdinalIgnoreCase) }
-                "Exact filename" { return [string]::Equals($name, $q, [System.StringComparison]::OrdinalIgnoreCase) }
-                "Wildcard (* and ?)" { return ($name -like $q) }
-                "Regex" {
-                    try {
-                        $rx = New-Object System.Text.RegularExpressions.Regex($q, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-                        return $rx.IsMatch($name)
-                    } catch {
-                        return $false
-                    }
-                }
-                default { return ($name.IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) }
-            }
-        }
-
-        function ShouldIgnore([string]$name, [string[]]$patterns) {
-            if (-not $patterns -or $patterns.Count -lt 1) { return $false }
-            foreach ($p in $patterns) {
-                if ([string]::IsNullOrWhiteSpace($p)) { continue }
-                if ($name -like $p) { return $true }
-            }
+    function IsMatch([string]$name, [string]$q, [string]$mode) {
+      switch ($mode) {
+        "Filename contains" { return ($name.IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) }
+        "Filename starts with" { return $name.StartsWith($q, [System.StringComparison]::OrdinalIgnoreCase) }
+        "Filename ends with" { return $name.EndsWith($q, [System.StringComparison]::OrdinalIgnoreCase) }
+        "Exact filename" { return [string]::Equals($name, $q, [System.StringComparison]::OrdinalIgnoreCase) }
+        "Wildcard (* and ?)" { return ($name -like $q) }
+        "Regex" {
+          try {
+            $rx = New-Object System.Text.RegularExpressions.Regex($q, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            return $rx.IsMatch($name)
+          }
+          catch {
             return $false
+          }
         }
-
-        $scanned = 0
-        $found = 0
-        $folderIndex = 0
-        $folderCount = $folders.Count
-        $lastEmit = Get-Date
-
-        $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-
-        foreach ($root in $folders) {
-            $folderIndex++
-            if ($found -ge $maxResults) { break }
-
-            if (-not (Test-Path -LiteralPath $root)) {
-                [pscustomobject]@{ Type = 'progress'; Current = ("[{0}/{1}] Unreachable: {2}" -f $folderIndex, $folderCount, $root); Scanned = $scanned; Found = $found } | Write-Output
-                continue
-            }
-
-            [pscustomobject]@{ Type = 'progress'; Current = ("[{0}/{1}] {2}" -f $folderIndex, $folderCount, $root); Scanned = $scanned; Found = $found } | Write-Output
-
-            try {
-                $opt = if ($recurse) { [System.IO.SearchOption]::AllDirectories } else { [System.IO.SearchOption]::TopDirectoryOnly }
-
-                foreach ($filePath in [System.IO.Directory]::EnumerateFiles($root, "*", $opt)) {
-                    $scanned++
-
-                    $now = Get-Date
-                    if (($now - $lastEmit).TotalMilliseconds -ge 300) {
-                        $lastEmit = $now
-                        [pscustomobject]@{ Type = 'progress'; Current = ("[{0}/{1}] {2}" -f $folderIndex, $folderCount, $root); Scanned = $scanned; Found = $found } | Write-Output
-                    }
-
-                    $name = [System.IO.Path]::GetFileName($filePath)
-
-                    if (ShouldIgnore $name $ignorePatterns) { continue }
-
-                    if (IsMatch $name $query $mode) {
-                        if ($seen.Add($filePath)) {
-                            $found++
-                            try {
-                                $fi = New-Object System.IO.FileInfo($filePath)
-                                [pscustomobject]@{
-                                    Type     = 'match'
-                                    Name     = $fi.Name
-                                    Folder   = $fi.DirectoryName
-                                    Modified = $fi.LastWriteTime
-                                    FullPath = $fi.FullName
-                                } | Write-Output
-                            } catch { }
-
-                            if ($found -ge $maxResults) { break }
-                        }
-                    }
-                }
-            } catch {
-                [pscustomobject]@{
-                    Type    = 'progress'
-                    Current = ("[{0}/{1}] Error: {2}" -f $folderIndex, $folderCount, $_.Exception.Message)
-                    Scanned = $scanned
-                    Found   = $found
-                } | Write-Output
-            }
-        }
-
-        [pscustomobject]@{ Type = 'done'; Scanned = $scanned; Found = $found } | Write-Output
+        default { return ($name.IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) }
+      }
     }
 
-    $script:SearchJob = Start-Job -ScriptBlock $jobScript -ArgumentList @($folders, $query, $mode, $recurse, $maxResults, $ignorePatterns)
-    DLog ("Start-Search: job started id={0}" -f $script:SearchJob.Id)
+    function ShouldIgnore([string]$name, [string[]]$patterns) {
+      if (-not $patterns -or $patterns.Count -lt 1) { return $false }
+      foreach ($p in $patterns) {
+        if ([string]::IsNullOrWhiteSpace($p)) { continue }
+        if ($name -like $p) { return $true }
+      }
+      return $false
+    }
 
-    $timer = New-Object System.Windows.Forms.Timer
-    $timer.Interval = 200
-    $timer.Add_Tick({
-            try {
-                if (-not $script:SearchJob) { return }
+    $scanned = 0
+    $found = 0
+    $folderIndex = 0
+    $folderCount = $folders.Count
+    $lastEmit = Get-Date
 
-                $items = @()
-                try { $items = Receive-Job -Job $script:SearchJob -Keep -ErrorAction SilentlyContinue } catch {}
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
 
-                foreach ($o in $items) {
-                    if ($null -eq $o) { continue }
-                    if (-not $o.PSObject.Properties['Type']) { continue }
+    foreach ($root in $folders) {
+      $folderIndex++
+      if ($found -ge $maxResults) { break }
 
-                    switch ($o.Type) {
-                        'progress' {
-                            $script:Scanned = [int]$o.Scanned
-                            $script:Found = [int]$o.Found
-                            Set-Current ([string]$o.Current)
-                            Set-Status ("Scanning... Files: {0} | Matches: {1}" -f $script:Scanned, $script:Found)
-                        }
-                        'match' {
-                            # UI dedup (just in case)
-                            $fp = [string]$o.FullPath
-                            if ($script:SeenPaths -and $fp -and $script:SeenPaths.Add($fp)) {
-                                Add-ResultRow ([string]$o.Name) ([string]$o.Folder) ([datetime]$o.Modified) $fp
-                                Ui $form {
-                                    if ($listResults.Items.Count -ge 1 -and $listResults.Items[0].Text -eq "Searching...") {
-                                        $listResults.Items.RemoveAt(0)
-                                    }
-                                }
-                            }
-                        }
-                        'done' {
-                            $script:Scanned = [int]$o.Scanned
-                            $script:Found = [int]$o.Found
-                        }
-                    }
-                }
+      if (-not (Test-Path -LiteralPath $root)) {
+        [pscustomobject]@{ Type = 'progress'; Current = ("[{0}/{1}] Unreachable: {2}" -f $folderIndex, $folderCount, $root); Scanned = $scanned; Found = $found } | Write-Output
+        continue
+      }
 
-                if ($script:SearchJob.State -in @('Completed', 'Failed', 'Stopped')) {
-                    $state = $script:SearchJob.State
-                    DLog ("Job finished. state={0}" -f $state)
+      [pscustomobject]@{ Type = 'progress'; Current = ("[{0}/{1}] {2}" -f $folderIndex, $folderCount, $root); Scanned = $scanned; Found = $found } | Write-Output
 
-                    try { $script:PollTimer.Stop(); $script:PollTimer.Dispose() } catch {}
-                    $script:PollTimer = $null
+      try {
+        $opt = if ($recurse) { [System.IO.SearchOption]::AllDirectories } else { [System.IO.SearchOption]::TopDirectoryOnly }
 
-                    try { $null = Receive-Job -Job $script:SearchJob -ErrorAction SilentlyContinue } catch {}
+        foreach ($filePath in [System.IO.Directory]::EnumerateFiles($root, "*", $opt)) {
+          $scanned++
 
-                    if ($state -eq 'Completed') {
-                        Set-Status ("Done. Matches: {0} | Files scanned: {1}" -f $script:Found, $script:Scanned)
-                    } elseif ($state -eq 'Stopped') {
-                        Set-Status "Stopped."
-                    } else {
-                        $err = ""
-                        try {
-                            $errs = $script:SearchJob.ChildJobs[0].Error
-                            if ($errs -and $errs.Count -gt 0) { $err = $errs[0].ToString() }
-                        } catch {}
-                        if ($err) { Set-Status ("Error: {0}" -f $err) } else { Set-Status "Error: search job failed." }
-                    }
+          $now = Get-Date
+          if (($now - $lastEmit).TotalMilliseconds -ge 300) {
+            $lastEmit = $now
+            [pscustomobject]@{ Type = 'progress'; Current = ("[{0}/{1}] {2}" -f $folderIndex, $folderCount, $root); Scanned = $scanned; Found = $found } | Write-Output
+          }
 
-                    Set-Current ""
-                    Set-UiSearching $false
+          $name = [System.IO.Path]::GetFileName($filePath)
 
-                    Ui $form {
-                        if ($listResults.Items.Count -ge 1 -and $listResults.Items[0].Text -eq "Searching...") {
-                            $listResults.Items.RemoveAt(0)
-                        }
-                    }
+          if (ShouldIgnore $name $ignorePatterns) { continue }
 
-                    try { Remove-Job -Job $script:SearchJob -Force -ErrorAction SilentlyContinue } catch {}
-                    $script:SearchJob = $null
-                }
-            } catch {
-                DLog ("POLL TIMER ERROR: {0}" -f $_.Exception.Message)
-                Set-Status ("Error: {0}" -f $_.Exception.Message)
-                Stop-Search
+          if (IsMatch $name $query $mode) {
+            if ($seen.Add($filePath)) {
+              $found++
+              try {
+                $fi = New-Object System.IO.FileInfo($filePath)
+                [pscustomobject]@{
+                  Type     = 'match'
+                  Name     = $fi.Name
+                  Folder   = $fi.DirectoryName
+                  Modified = $fi.LastWriteTime
+                  FullPath = $fi.FullName
+                } | Write-Output
+              }
+              catch { }
+
+              if ($found -ge $maxResults) { break }
             }
-        })
+          }
+        }
+      }
+      catch {
+        [pscustomobject]@{
+          Type    = 'progress'
+          Current = ("[{0}/{1}] Error: {2}" -f $folderIndex, $folderCount, $_.Exception.Message)
+          Scanned = $scanned
+          Found   = $found
+        } | Write-Output
+      }
+    }
 
-    $script:PollTimer = $timer
-    $timer.Start()
+    [pscustomobject]@{ Type = 'done'; Scanned = $scanned; Found = $found } | Write-Output
+  }
+
+  $script:SearchJob = Start-Job -ScriptBlock $jobScript -ArgumentList @($folders, $query, $mode, $recurse, $maxResults, $ignorePatterns)
+  DLog ("Start-Search: job started id={0}" -f $script:SearchJob.Id)
+
+  $timer = New-Object System.Windows.Forms.Timer
+  $timer.Interval = 200
+  $timer.Add_Tick({
+      try {
+        if (-not $script:SearchJob) { return }
+
+        $items = @()
+        try { $items = Receive-Job -Job $script:SearchJob -Keep -ErrorAction SilentlyContinue } catch {}
+
+        foreach ($o in $items) {
+          if ($null -eq $o) { continue }
+          if (-not $o.PSObject.Properties['Type']) { continue }
+
+          switch ($o.Type) {
+            'progress' {
+              $script:Scanned = [int]$o.Scanned
+              $script:Found = [int]$o.Found
+              Set-Current ([string]$o.Current)
+              Set-Status ("Scanning... Files: {0} | Matches: {1}" -f $script:Scanned, $script:Found)
+            }
+            'match' {
+              # UI dedup (just in case)
+              $fp = [string]$o.FullPath
+              if ($script:SeenPaths -and $fp -and $script:SeenPaths.Add($fp)) {
+                Add-ResultRow ([string]$o.Name) ([string]$o.Folder) ([datetime]$o.Modified) $fp
+                Ui $form {
+                  if ($listResults.Items.Count -ge 1 -and $listResults.Items[0].Text -eq "Searching...") {
+                    $listResults.Items.RemoveAt(0)
+                  }
+                }
+              }
+            }
+            'done' {
+              $script:Scanned = [int]$o.Scanned
+              $script:Found = [int]$o.Found
+            }
+          }
+        }
+
+        if ($script:SearchJob.State -in @('Completed', 'Failed', 'Stopped')) {
+          $state = $script:SearchJob.State
+          DLog ("Job finished. state={0}" -f $state)
+
+          try { $script:PollTimer.Stop(); $script:PollTimer.Dispose() } catch {}
+          $script:PollTimer = $null
+
+          try { $null = Receive-Job -Job $script:SearchJob -ErrorAction SilentlyContinue } catch {}
+
+          if ($state -eq 'Completed') {
+            Set-Status ("Done. Matches: {0} | Files scanned: {1}" -f $script:Found, $script:Scanned)
+          }
+          elseif ($state -eq 'Stopped') {
+            Set-Status "Stopped."
+          }
+          else {
+            $err = ""
+            try {
+              $errs = $script:SearchJob.ChildJobs[0].Error
+              if ($errs -and $errs.Count -gt 0) { $err = $errs[0].ToString() }
+            }
+            catch {}
+            if ($err) { Set-Status ("Error: {0}" -f $err) } else { Set-Status "Error: search job failed." }
+          }
+
+          Set-Current ""
+          Set-UiSearching $false
+
+          Ui $form {
+            if ($listResults.Items.Count -ge 1 -and $listResults.Items[0].Text -eq "Searching...") {
+              $listResults.Items.RemoveAt(0)
+            }
+          }
+
+          try { Remove-Job -Job $script:SearchJob -Force -ErrorAction SilentlyContinue } catch {}
+          $script:SearchJob = $null
+        }
+      }
+      catch {
+        DLog ("POLL TIMER ERROR: {0}" -f $_.Exception.Message)
+        Set-Status ("Error: {0}" -f $_.Exception.Message)
+        Stop-Search
+      }
+    })
+
+  $script:PollTimer = $timer
+  $timer.Start()
 }
 
 # -------------------------
 # Events - folder controls
 # -------------------------
 $btnBrowse.Add_Click({
-        $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dlg.Description = "Select a folder to include in searches"
-        $dlg.ShowNewFolderButton = $false
-        if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $txtAddFolder.Text = $dlg.SelectedPath
-        }
-    })
+    $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dlg.Description = "Select a folder to include in searches"
+    $dlg.ShowNewFolderButton = $false
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+      $txtAddFolder.Text = $dlg.SelectedPath
+    }
+  })
 
 $btnAdd.Add_Click({
-        $p = $txtAddFolder.Text
-        if ([string]::IsNullOrWhiteSpace($p)) { return }
-        Add-FolderToList $listFolders $p
-        $txtAddFolder.Text = ""
-        Persist-UiSettings
-    })
+    $p = $txtAddFolder.Text
+    if ([string]::IsNullOrWhiteSpace($p)) { return }
+    Add-FolderToList $listFolders $p
+    $txtAddFolder.Text = ""
+    Persist-UiSettings
+  })
 
 $txtAddFolder.Add_KeyDown({
-        if ($_.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
-            $btnAdd.PerformClick()
-            $_.SuppressKeyPress = $true
-        }
-    })
+    if ($_.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+      $btnAdd.PerformClick()
+      $_.SuppressKeyPress = $true
+    }
+  })
 
 $btnRemoveFolder.Add_Click({
-        # Remove all selected folders (supports multi-select)
-        $idxs = @($listFolders.SelectedIndices)
-        if ($idxs.Count -lt 1) { return }
-        foreach ($i in ($idxs | Sort-Object -Descending)) {
-            try { $listFolders.Items.RemoveAt([int]$i) } catch {}
-        }
-        Persist-UiSettings
-    })
+    # Remove all selected folders (supports multi-select)
+    $idxs = @($listFolders.SelectedIndices)
+    if ($idxs.Count -lt 1) { return }
+    foreach ($i in ($idxs | Sort-Object -Descending)) {
+      try { $listFolders.Items.RemoveAt([int]$i) } catch {}
+    }
+    Persist-UiSettings
+  })
 
 $btnClearFolders.Add_Click({
-        $listFolders.Items.Clear()
-        Persist-UiSettings
-    })
+    $listFolders.Items.Clear()
+    Persist-UiSettings
+  })
 
 # Persist enable/disable toggles
 $listFolders.Add_ItemCheck({
-        try {
-            $null = $form.BeginInvoke([Action] { Persist-UiSettings })
-        } catch { }
-    })
+    try {
+      $null = $form.BeginInvoke([Action] { Persist-UiSettings })
+    }
+    catch { }
+  })
 
 # -------------------------
 # Events - search controls
 # -------------------------
 $btnSearch.Add_Click({
-        try {
-            DLog "Search button clicked"
+    try {
+      DLog "Search button clicked"
 
-            $folders = @(Get-EnabledFoldersFromList $listFolders)
-            DLog ("Folders count: {0}" -f $folders.Count)
+      $folders = @(Get-EnabledFoldersFromList $listFolders)
+      DLog ("Folders count: {0}" -f $folders.Count)
 
-            $query = ($txtQuery.Text).Trim()
-            DLog ("Query: '{0}'" -f $query)
+      $query = ($txtQuery.Text).Trim()
+      DLog ("Query: '{0}'" -f $query)
 
-            if ($folders.Count -lt 1) { Set-Status "Error: Add at least one folder."; return }
-            if ([string]::IsNullOrWhiteSpace($query)) { Set-Status "Error: Enter a search value."; return }
+      if ($folders.Count -lt 1) { Set-Status "Error: Add at least one folder."; return }
+      if ([string]::IsNullOrWhiteSpace($query)) { Set-Status "Error: Enter a search value."; return }
 
-            $mode = [string]$cmbMode.SelectedItem
-            $recurse = [bool]$chkSub.Checked
-            $max = [int]$numMax.Value
+      $mode = [string]$cmbMode.SelectedItem
+      $recurse = [bool]$chkSub.Checked
+      $max = [int]$numMax.Value
 
-            $ignoreRaw = [string]$txtIgnore.Text
-            if ([string]::IsNullOrWhiteSpace($ignoreRaw)) { $ignoreRaw = $script:DefaultIgnore }
-            $ignore = Parse-IgnorePatterns $ignoreRaw
+      $ignoreRaw = [string]$txtIgnore.Text
+      if ([string]::IsNullOrWhiteSpace($ignoreRaw)) { $ignoreRaw = $script:DefaultIgnore }
+      $ignore = Parse-IgnorePatterns $ignoreRaw
 
-            Persist-UiSettings
-            DLog ("Mode: '{0}' recurse={1} max={2} ignore='{3}'" -f $mode, $recurse, $max, ($ignore -join ';'))
+      Persist-UiSettings
+      DLog ("Mode: '{0}' recurse={1} max={2} ignore='{3}'" -f $mode, $recurse, $max, ($ignore -join ';'))
 
-            Start-Search -folders $folders -query $query -mode $mode -recurse $recurse -maxResults $max -ignorePatterns $ignore
-            DLog "Search click handler finished normally"
-        } catch {
-            DLog ("SEARCH CLICK ERROR: {0}`r`n{1}" -f $_.Exception.Message, $_.ScriptStackTrace)
-            try { Set-UiSearching $false } catch {}
-            try { Set-Status ("Error: {0}" -f $_.Exception.Message) } catch {}
-        }
-    })
+      Start-Search -folders $folders -query $query -mode $mode -recurse $recurse -maxResults $max -ignorePatterns $ignore
+      DLog "Search click handler finished normally"
+    }
+    catch {
+      DLog ("SEARCH CLICK ERROR: {0}`r`n{1}" -f $_.Exception.Message, $_.ScriptStackTrace)
+      try { Set-UiSearching $false } catch {}
+      try { Set-Status ("Error: {0}" -f $_.Exception.Message) } catch {}
+    }
+  })
 
 $btnStop.Add_Click({ Stop-Search })
 
 $txtQuery.Add_KeyDown({
-        if ($_.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
-            $btnSearch.PerformClick()
-            $_.SuppressKeyPress = $true
-        }
-    })
+    if ($_.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+      $btnSearch.PerformClick()
+      $_.SuppressKeyPress = $true
+    }
+  })
 
 # -------------------------
 # Results actions
@@ -1128,93 +1163,59 @@ $txtQuery.Add_KeyDown({
 
 # Update metadata panel when selection changes
 $listResults.Add_SelectedIndexChanged({
-        try {
-            if ($listResults.SelectedItems.Count -lt 1) { Set-Metadata ""; return }
-            $tag = $listResults.SelectedItems[0].Tag
-            $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
-            Set-Metadata $full
-        } catch { }
-    })
+    try {
+      if ($listResults.SelectedItems.Count -lt 1) { Set-Metadata ""; return }
+      $tag = $listResults.SelectedItems[0].Tag
+      $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
+      Set-Metadata $full
+    }
+    catch { }
+  })
 
 $listResults.Add_DoubleClick({
-        if ($listResults.SelectedItems.Count -lt 1) { return }
-        $tag = $listResults.SelectedItems[0].Tag
-        $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
-        if ($full) { Safe-OpenFile $full }
-    })
+    if ($listResults.SelectedItems.Count -lt 1) { return }
+    $tag = $listResults.SelectedItems[0].Tag
+    $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
+    if ($full) { Safe-OpenFile $full }
+  })
 
 $miOpen.Add_Click({
-        if ($listResults.SelectedItems.Count -lt 1) { return }
-        $tag = $listResults.SelectedItems[0].Tag
-        $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
-        if ($full) { Safe-OpenFile $full }
-    })
+    if ($listResults.SelectedItems.Count -lt 1) { return }
+    $tag = $listResults.SelectedItems[0].Tag
+    $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
+    if ($full) { Safe-OpenFile $full }
+  })
 
 $miOpenFolder.Add_Click({
-        if ($listResults.SelectedItems.Count -lt 1) { return }
-        $tag = $listResults.SelectedItems[0].Tag
-        $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
-        if ($full) { Safe-OpenFolderAndSelect $full }
-    })
+    if ($listResults.SelectedItems.Count -lt 1) { return }
+    $tag = $listResults.SelectedItems[0].Tag
+    $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
+    if ($full) { Safe-OpenFolderAndSelect $full }
+  })
 
 $miCopyFull.Add_Click({
-        if ($listResults.SelectedItems.Count -lt 1) { return }
-        $tag = $listResults.SelectedItems[0].Tag
-        $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
-        if ($full) { Copy-ToClipboard $full }
-    })
+    if ($listResults.SelectedItems.Count -lt 1) { return }
+    $tag = $listResults.SelectedItems[0].Tag
+    $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
+    if ($full) { Copy-ToClipboard $full }
+  })
 
 $miCopyFolder.Add_Click({
-        if ($listResults.SelectedItems.Count -lt 1) { return }
-        $tag = $listResults.SelectedItems[0].Tag
-        $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
-        if ($full) { Copy-ToClipboard (Split-Path $full -Parent) }
-    })
+    if ($listResults.SelectedItems.Count -lt 1) { return }
+    $tag = $listResults.SelectedItems[0].Tag
+    $full = if ($tag -and $tag.FullPath) { [string]$tag.FullPath } else { "" }
+    if ($full) { Copy-ToClipboard (Split-Path $full -Parent) }
+  })
 
 $form.Add_FormClosing({
-        try { Stop-Search } catch {}
-        try { Persist-UiSettings } catch {}
-        DLog "FORM CLOSING"
-    })
+    try { Stop-Search } catch {}
+    try { Persist-UiSettings } catch {}
+    DLog "FORM CLOSING"
+  })
 
 # Show
 DLog "Showing UI"
 
-
-
-
-
-
-
-
-
-
-[void]# Save window geometry/splitter on close
-$form.Add_FormClosing({
-        try {
-            $rb = if ($form.WindowState -ne [System.Windows.Forms.FormWindowState]::Normal) { $form.RestoreBounds } else { $form.Bounds }
-
-            $script:cfg.window = [PSCustomObject]@{
-                x      = [int]$rb.X
-                y      = [int]$rb.Y
-                width  = [int]$rb.Width
-                height = [int]$rb.Height
-                state  = [string]$form.WindowState
-            }
-            $script:cfg.mainSplitter = [int]$mainSplit.SplitterDistance
-
-            Save-Settings -path $script:SettingsPath -settingsObject $script:cfg
-            DLog ("Saved window settings: {0}x{1} @ {2},{3} state={4} split={5}" -f $rb.Width, $rb.Height, $rb.X, $rb.Y, $form.WindowState, $mainSplit.SplitterDistance)
-        } catch {
-            DLog ("Save window settings error: {0}" -f $_.Exception.Message)
-        }
-    })
-
 $form.ShowDialog()
 DLog "SCRIPT END"
-
-
-
-
-
 
